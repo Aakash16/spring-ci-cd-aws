@@ -37,6 +37,7 @@
     </properties>
 
     <build>
+        <finalName>spring-boot-cicd</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
