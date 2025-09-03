@@ -8,7 +8,7 @@ public class Controller {
     
     @RequestMapping("/")
     public String index() {
-        return "Hello World\n";
+        return "Hello World Awesome\n";
     }
     
 }
