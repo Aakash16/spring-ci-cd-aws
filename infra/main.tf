@@ -53,11 +53,13 @@ resource "aws_route_table_association" "public_c" {
 }
 
 # ---------------------------
-# Security Group (open port 80 for ALB)
+# Security Groups
 # ---------------------------
-resource "aws_security_group" "ecs_sg" {
-  name        = "ecs-sg"
-  description = "Allow HTTP traffic"
+
+# ALB Security Group → allows 80 from world
+resource "aws_security_group" "alb_sg" {
+  name        = "spring-boot-alb-sg"    # 👈 renamed
+  description = "Allow inbound HTTP from internet"
   vpc_id      = aws_vpc.this.id
 
   ingress {
@@ -73,6 +75,35 @@ resource "aws_security_group" "ecs_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# ECS Task Security Group → allows 8080 only from ALB SG
+resource "aws_security_group" "ecs_sg" {
+  name        = "spring-boot-ecs-sg"    # 👈 renamed
+  description = "Allow traffic from ALB to ECS tasks"
+  vpc_id      = aws_vpc.this.id
+
+  ingress {
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # ---------------------------
@@ -86,7 +117,7 @@ resource "aws_ecs_cluster" "this" {
 # IAM Role for ECS Task Execution
 # ---------------------------
 resource "aws_iam_role" "ecs_task_execution" {
-  name               = "spring-boot-cicd-execution-role" # unique name
+  name               = "spring-boot-cicd-execution-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
 }
 
@@ -146,22 +177,22 @@ resource "aws_lb" "app" {
   name               = "spring-boot-cicd-alb"
   load_balancer_type = "application"
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_c.id]
-  security_groups    = [aws_security_group.ecs_sg.id]
+  security_groups    = [aws_security_group.alb_sg.id]   # ✅ ALB SG
 }
 
 resource "aws_lb_target_group" "app" {
-  name        = "spring-boot-cicd-tg-ip" # new name to avoid conflicts
+  name        = "spring-boot-cicd-tg-ip"
   port        = 8080
   protocol    = "HTTP"
   vpc_id      = aws_vpc.this.id
-  target_type = "ip" # required for Fargate/awsvpc
+  target_type = "ip"
 
   lifecycle {
     create_before_destroy = true
   }
 
   health_check {
-    path                = "/actuator/health"
+    path                = "/"   # ✅ simple root health check
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
@@ -192,7 +223,7 @@ resource "aws_ecs_service" "app" {
 
   network_configuration {
     subnets         = [aws_subnet.public_a.id, aws_subnet.public_c.id]
-    security_groups = [aws_security_group.ecs_sg.id]
+    security_groups = [aws_security_group.ecs_sg.id]   # ✅ ECS SG
     assign_public_ip = true
   }
 
@@ -205,7 +236,9 @@ resource "aws_ecs_service" "app" {
   depends_on = [aws_lb_listener.http]
 }
 
-
+# ---------------------------
+# CloudWatch Logs
+# ---------------------------
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/ecs/spring-boot-cicd"
   retention_in_days = 7
