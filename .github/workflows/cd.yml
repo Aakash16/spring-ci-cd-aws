@@ -23,4 +23,5 @@ jobs:
           aws ecs update-service \
             --cluster spring-boot-cicd-cluster \
             --service spring-boot-cicd-service \
-            --force-new-deployment
+            --force-new-deployment \
+            --region us-west-1
