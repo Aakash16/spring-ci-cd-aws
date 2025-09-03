@@ -57,7 +57,7 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t spring-boot-cicd:latest .
-          docker tag my-app:latest ${{ steps.login-ecr.outputs.registry }}/spring-boot-cicd:latest
+          docker tag spring-boot-cicd:latest ${{ steps.login-ecr.outputs.registry }}/spring-boot-cicd:latest
 
       - name: Push Docker image to ECR
         run: |
