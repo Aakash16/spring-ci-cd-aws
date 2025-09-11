@@ -1,9 +1,20 @@
-version: "3.0"
-
+version: "3.8"
 services:
-  hello-world:
-    build: 
-      context: ./
-      dockerfile: Dockerfile
+  localstack:
+    network_mode: "host"
+    image: localstack/localstack:2.2
+    environment:
+      - SERVICES=s3,dynamodb,sqs,secretsmanager,kms
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - AWS_REGION=us-west-1
+      - DYNAMODB_TABLE=demo-table
+      - S3_BUCKET=demo-bucket
+      - S3_KMS_KEY_ID=alias/demo-kms
+      - SQS_QUEUE_URL=http://host.docker.internal:4566/000000000000/demo-queue
+      - SECRETS_ARN=arn:aws:secretsmanager:us-west-1:000000000000:secret:demo
+      - LAMBDA_EXECUTOR=local
     ports:
-      - 8080:8080
+      - "4566:4566"
+volumes:
+  localstack_data:
