@@ -1,4 +1,8 @@
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  main:
+    allow-bean-definition-overriding: true
   mvc:
     view:
       prefix: /WEB-INF/jsp/
@@ -30,3 +34,18 @@ management:
 
 server:
   port: 8080
+  shutdown: graceful
+
+aws:
+  region: ${AWS_REGION:us-west-1}
+  dynamodb:
+    table-name: ${DYNAMODB_TABLE:demo-table}
+  s3:
+    bucket: ${S3_BUCKET:demo-bucket}
+    kms-key-id: ${S3_KMS_KEY_ID:alias/demo-kms}
+  sqs:
+    queue-url: ${SQS_QUEUE_URL:http://localhost:4566/000000000000/demo-queue}
+  secrets:
+    api-secret-arn: ${SECRETS_ARN:}
+
+
